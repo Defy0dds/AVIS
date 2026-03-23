@@ -1,6 +1,6 @@
 use crate::{
     auth::refresh,
-    commands::{read::fetch_message, send::load_credentials},
+    commands::{download::SavedFile, read::fetch_message, send::load_credentials},
     output,
 };
 use serde::Serialize;
@@ -13,12 +13,27 @@ struct WaitTimeout {
     timeout: u64,
 }
 
+#[derive(Serialize)]
+struct WaitResult {
+    schema_version: &'static str,
+    id: String,
+    from: String,
+    subject: String,
+    body: String,
+    ts: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    attachments: Vec<crate::commands::read::AttachmentInfo>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    downloaded_files: Vec<SavedFile>,
+}
+
 pub async fn run(
     home: &Path,
     identity: &str,
     from_filter: Option<&str>,
     subject_filter: Option<&str>,
     timeout: u64,
+    download_dir: Option<&str>,
 ) {
     let creds = load_credentials(home, identity).unwrap_or_else(|e| e.bail(2));
 
@@ -104,7 +119,32 @@ pub async fn run(
             // New message - fetch and return it
             match fetch_message(&client, &token.access_token, &msg_ref.id).await {
                 Ok(msg) => {
-                    output::print_json(&msg);
+                    let mut downloaded_files = Vec::new();
+                    if let Some(dir) = download_dir {
+                        if !msg.attachments.is_empty() {
+                            if let Ok(saved) = crate::commands::download::download_attachments(
+                                &client,
+                                &token.access_token,
+                                &msg.id,
+                                &msg.attachments,
+                                Path::new(dir),
+                            )
+                            .await
+                            {
+                                downloaded_files = saved;
+                            }
+                        }
+                    }
+                    output::print_json(&WaitResult {
+                        schema_version: output::SCHEMA_VERSION,
+                        id: msg.id,
+                        from: msg.from,
+                        subject: msg.subject,
+                        body: msg.body,
+                        ts: msg.ts,
+                        attachments: msg.attachments,
+                        downloaded_files,
+                    });
                     return;
                 }
                 Err(_) => continue,

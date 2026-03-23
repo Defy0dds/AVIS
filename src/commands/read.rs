@@ -1,4 +1,9 @@
-use crate::{auth::refresh, commands::send::load_credentials, errors::AvisError, output};
+use crate::{
+    auth::refresh,
+    commands::{download::SavedFile, send::load_credentials},
+    errors::AvisError,
+    output,
+};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -6,15 +11,17 @@ use std::path::Path;
 struct ReadResult {
     schema_version: &'static str,
     messages: Vec<EmailMessage>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    downloaded_files: Vec<SavedFile>,
 }
 
 #[derive(Serialize)]
 pub(crate) struct EmailMessage {
-    id: String,
-    from: String,
-    subject: String,
+    pub(crate) id: String,
+    pub(crate) from: String,
+    pub(crate) subject: String,
     pub(crate) body: String,
-    ts: String,
+    pub(crate) ts: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub(crate) attachments: Vec<AttachmentInfo>,
 }
@@ -76,6 +83,7 @@ struct Part {
     parts: Option<Vec<Part>>,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn run(
     home: &Path,
     identity: &str,
@@ -84,6 +92,7 @@ pub async fn run(
     subject_filter: Option<&str>,
     count: usize,
     _verbose: bool,
+    download_dir: Option<&str>,
 ) {
     let creds = load_credentials(home, identity).unwrap_or_else(|e| e.bail(2));
 
@@ -135,9 +144,30 @@ pub async fn run(
         messages.push(msg);
     }
 
+    // Auto-download attachments if requested
+    let mut downloaded_files = Vec::new();
+    if let Some(dir) = download_dir {
+        let dir_path = Path::new(dir);
+        for msg in &messages {
+            if !msg.attachments.is_empty() {
+                let saved = crate::commands::download::download_attachments(
+                    &client,
+                    &token.access_token,
+                    &msg.id,
+                    &msg.attachments,
+                    dir_path,
+                )
+                .await
+                .unwrap_or_else(|e| e.bail(2));
+                downloaded_files.extend(saved);
+            }
+        }
+    }
+
     output::print_json(&ReadResult {
         schema_version: output::SCHEMA_VERSION,
         messages,
+        downloaded_files,
     });
 }
 

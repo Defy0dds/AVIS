@@ -1,6 +1,9 @@
 use crate::{
     auth::refresh,
-    commands::{read::fetch_message, send::load_credentials},
+    commands::{
+        read::{fetch_message, AttachmentInfo},
+        send::load_credentials,
+    },
     errors::AvisError,
     output,
 };
@@ -8,18 +11,86 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use serde::Serialize;
 use std::path::Path;
 
+#[derive(Serialize, Clone)]
+pub(crate) struct SavedFile {
+    pub(crate) filename: String,
+    pub(crate) path: String,
+    pub(crate) size: u64,
+}
+
 #[derive(Serialize)]
 struct DownloadResult {
     schema_version: &'static str,
     message_id: String,
-    downloaded: Vec<DownloadedFile>,
+    downloaded: Vec<SavedFile>,
 }
 
-#[derive(Serialize)]
-struct DownloadedFile {
-    filename: String,
-    path: String,
-    size: u64,
+/// Download attachments for a single message. Shared by `download`, `read`, and `wait`.
+pub(crate) async fn download_attachments(
+    client: &reqwest::Client,
+    access_token: &str,
+    message_id: &str,
+    attachments: &[AttachmentInfo],
+    dir: &Path,
+) -> Result<Vec<SavedFile>, AvisError> {
+    if attachments.is_empty() {
+        return Ok(vec![]);
+    }
+
+    if !dir.exists() {
+        std::fs::create_dir_all(dir).map_err(|e| {
+            AvisError::fs_error(format!("Cannot create dir {}: {}", dir.display(), e))
+        })?;
+    }
+
+    let mut saved = Vec::new();
+
+    for att in attachments {
+        let url = format!(
+            "https://gmail.googleapis.com/gmail/v1/users/me/messages/{}/attachments/{}",
+            message_id, att.attachment_id
+        );
+
+        let resp = client
+            .get(&url)
+            .bearer_auth(access_token)
+            .send()
+            .await
+            .map_err(|e| AvisError::imap_failure(e.to_string()))?;
+
+        if !resp.status().is_success() {
+            return Err(AvisError::imap_failure(format!(
+                "Failed to download {}: HTTP {}",
+                att.filename,
+                resp.status()
+            )));
+        }
+
+        #[derive(serde::Deserialize)]
+        struct AttachmentData {
+            data: String,
+        }
+
+        let att_data: AttachmentData = resp
+            .json()
+            .await
+            .map_err(|e| AvisError::imap_failure(e.to_string()))?;
+
+        let bytes = decode_attachment_data(&att_data.data)
+            .map_err(|e| AvisError::new("decode_error", format!("{}: {}", att.filename, e)))?;
+
+        let file_path = dir.join(&att.filename);
+        std::fs::write(&file_path, &bytes)
+            .map_err(|e| AvisError::fs_error(format!("Cannot write {}: {}", att.filename, e)))?;
+
+        saved.push(SavedFile {
+            filename: att.filename.clone(),
+            path: file_path.to_string_lossy().to_string(),
+            size: bytes.len() as u64,
+        });
+    }
+
+    Ok(saved)
 }
 
 pub async fn run(home: &Path, identity: &str, message_id: Option<&str>, dir: &str) {
@@ -46,64 +117,15 @@ pub async fn run(home: &Path, identity: &str, message_id: Option<&str>, dir: &st
         AvisError::new("no_attachments", "Message has no attachments").bail(1);
     }
 
-    // Ensure output dir exists
-    let out_dir = Path::new(dir);
-    if !out_dir.exists() {
-        std::fs::create_dir_all(out_dir)
-            .map_err(|e| AvisError::fs_error(format!("Cannot create dir {}: {}", dir, e)))
-            .unwrap_or_else(|e| e.bail(2));
-    }
-
-    let mut downloaded = Vec::new();
-
-    for att in &msg.attachments {
-        let url = format!(
-            "https://gmail.googleapis.com/gmail/v1/users/me/messages/{}/attachments/{}",
-            target_id, att.attachment_id
-        );
-
-        let resp = client
-            .get(&url)
-            .bearer_auth(&token.access_token)
-            .send()
-            .await
-            .unwrap_or_else(|e| AvisError::imap_failure(e.to_string()).bail(2));
-
-        if !resp.status().is_success() {
-            AvisError::imap_failure(format!(
-                "Failed to download {}: HTTP {}",
-                att.filename,
-                resp.status()
-            ))
-            .bail(2);
-        }
-
-        #[derive(serde::Deserialize)]
-        struct AttachmentData {
-            data: String,
-        }
-
-        let att_data: AttachmentData = resp
-            .json()
-            .await
-            .unwrap_or_else(|e| AvisError::imap_failure(e.to_string()).bail(2));
-
-        // Gmail returns base64url-encoded data
-        let bytes = decode_attachment_data(&att_data.data)
-            .map_err(|e| AvisError::new("decode_error", format!("{}: {}", att.filename, e)))
-            .unwrap_or_else(|e| e.bail(2));
-
-        let file_path = out_dir.join(&att.filename);
-        std::fs::write(&file_path, &bytes)
-            .map_err(|e| AvisError::fs_error(format!("Cannot write {}: {}", att.filename, e)))
-            .unwrap_or_else(|e| e.bail(2));
-
-        downloaded.push(DownloadedFile {
-            filename: att.filename.clone(),
-            path: file_path.to_string_lossy().to_string(),
-            size: bytes.len() as u64,
-        });
-    }
+    let downloaded = download_attachments(
+        &client,
+        &token.access_token,
+        &target_id,
+        &msg.attachments,
+        Path::new(dir),
+    )
+    .await
+    .unwrap_or_else(|e| e.bail(2));
 
     output::print_json(&DownloadResult {
         schema_version: output::SCHEMA_VERSION,
@@ -113,7 +135,6 @@ pub async fn run(home: &Path, identity: &str, message_id: Option<&str>, dir: &st
 }
 
 fn decode_attachment_data(data: &str) -> Result<Vec<u8>, String> {
-    // Gmail base64url — try without padding first, then with
     if let Ok(bytes) = URL_SAFE_NO_PAD.decode(data) {
         return Ok(bytes);
     }

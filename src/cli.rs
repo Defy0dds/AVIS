@@ -90,6 +90,10 @@ pub enum Command {
         /// Full output including headers and metadata
         #[arg(long)]
         verbose: bool,
+
+        /// Auto-download attachments to this directory
+        #[arg(long = "download-dir")]
+        download_dir: Option<String>,
     },
 
     /// Wait for a matching email to arrive
@@ -108,6 +112,10 @@ pub enum Command {
         /// Seconds to wait before timeout (default: 60)
         #[arg(short = 't', long = "timeout", default_value = "60")]
         timeout: u64,
+
+        /// Auto-download attachments to this directory
+        #[arg(long = "download-dir")]
+        download_dir: Option<String>,
     },
 
     /// Extract OTP codes or links from an email

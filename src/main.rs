@@ -57,6 +57,7 @@ async fn main() {
             subject,
             count,
             verbose,
+            download_dir,
         } => {
             commands::read::run(
                 &home,
@@ -66,6 +67,7 @@ async fn main() {
                 subject.as_deref(),
                 count,
                 verbose,
+                download_dir.as_deref(),
             )
             .await;
         }
@@ -75,6 +77,7 @@ async fn main() {
             from,
             subject,
             timeout,
+            download_dir,
         } => {
             commands::wait::run(
                 &home,
@@ -82,6 +85,7 @@ async fn main() {
                 from.as_deref(),
                 subject.as_deref(),
                 timeout,
+                download_dir.as_deref(),
             )
             .await;
         }
