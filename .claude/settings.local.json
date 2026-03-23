@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C Z:/Rust/avis worktree list)",
+      "Bash(git -C Z:/Rust/avis worktree remove --force .claude/worktrees/epic-burnell)",
+      "Bash(git -C Z:/Rust/avis worktree remove --force .claude/worktrees/zealous-wozniak)",
+      "Bash(git -C Z:/Rust/avis worktree prune)"
+    ]
+  }
+}
