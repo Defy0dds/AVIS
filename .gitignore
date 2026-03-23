@@ -1,4 +1,3 @@
 /target
 .env
 client_secret*.json
-.claude/worktrees/
