@@ -2,7 +2,7 @@ use crate::{
     auth::refresh,
     commands::{download::SavedFile, send::load_credentials},
     errors::AvisError,
-    output,
+    output, sanitize,
 };
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -281,8 +281,13 @@ fn collect_attachments(parts: &[Part], out: &mut Vec<AttachmentInfo>) {
             if !filename.is_empty() {
                 if let Some(body) = &part.body {
                     if let Some(att_id) = &body.attachment_id {
+                        // Fix #7: sanitize filename before including in JSON output
+                        let safe_name = match sanitize::sanitize_filename(filename) {
+                            Ok(n) => n,
+                            Err(_) => format!("attachment_{}", out.len()),
+                        };
                         out.push(AttachmentInfo {
-                            filename: filename.clone(),
+                            filename: safe_name,
                             mime_type: part
                                 .mime_type
                                 .clone()
@@ -345,6 +350,9 @@ fn clean_body(raw: &str) -> String {
     }
 
     let result = lines.join("\n").trim().to_string();
+
+    // Fix #6: strip null bytes and non-printable control chars (keep \n, \r, \t)
+    let result = sanitize::strip_control_chars(&result);
 
     // Cap at 2000 chars
     if result.len() > 2000 {

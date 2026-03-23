@@ -1,4 +1,4 @@
-use crate::{auth::refresh, config, crypto, errors::AvisError, output};
+use crate::{auth::refresh, config, crypto, errors::AvisError, output, sanitize};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use serde::Serialize;
 use std::path::Path;
@@ -44,6 +44,10 @@ pub async fn run(
         uuid_simple(),
         cfg.email.replace('@', ".at.")
     );
+
+    // Validate header values against CRLF injection
+    sanitize::validate_header_value("To", to).unwrap_or_else(|e| e.bail(1));
+    sanitize::validate_header_value("Subject", subject).unwrap_or_else(|e| e.bail(1));
 
     let raw_email = if attachments.is_empty() {
         format!(
@@ -166,6 +170,9 @@ fn build_multipart_email(
             ));
         }
 
+        // Fix #1: reject files over 20 MB before reading into memory
+        sanitize::check_attachment_size(path, path_str)?;
+
         let file_bytes = std::fs::read(path)
             .map_err(|e| AvisError::new("attachment_read_error", format!("{}: {}", path_str, e)))?;
 
@@ -177,21 +184,27 @@ fn build_multipart_email(
         let mime = guess_mime_type(filename);
         let b64 = STANDARD.encode(&file_bytes);
 
+        // Fix #2: RFC 5987 encoding for non-ASCII filenames
+        let disposition_filename = sanitize::encode_content_disposition_filename(filename);
+        let content_type_name = sanitize::encode_content_type_name(filename);
+
         email.push_str(&format!("--{}\r\n", boundary));
         email.push_str(&format!(
-            "Content-Type: {}; name=\"{}\"\r\n",
-            mime, filename
+            "Content-Type: {}; {}\r\n",
+            mime, content_type_name
         ));
         email.push_str("Content-Transfer-Encoding: base64\r\n");
         email.push_str(&format!(
-            "Content-Disposition: attachment; filename=\"{}\"\r\n",
-            filename
+            "Content-Disposition: attachment; {}\r\n",
+            disposition_filename
         ));
         email.push_str("\r\n");
 
         // Wrap base64 at 76 chars per RFC 2045
+        // Fix #3: base64 output is always valid UTF-8 — panic on invariant violation
         for chunk in b64.as_bytes().chunks(76) {
-            email.push_str(std::str::from_utf8(chunk).unwrap_or_default());
+            email
+                .push_str(std::str::from_utf8(chunk).expect("base64 output is always valid UTF-8"));
             email.push_str("\r\n");
         }
     }

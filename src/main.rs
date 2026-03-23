@@ -5,6 +5,7 @@ mod config;
 mod crypto;
 mod errors;
 mod output;
+mod sanitize;
 
 use clap::Parser;
 use cli::{AddTarget, Cli, Command};
