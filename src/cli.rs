@@ -1,0 +1,146 @@
+use clap::{Parser, Subcommand};
+
+#[derive(Parser)]
+#[command(
+    name = "avis",
+    about = "Multi-identity email operations for AI agents",
+    version = "1.0.0",
+    arg_required_else_help = true
+)]
+pub struct Cli {
+    #[command(subcommand)]
+    pub command: Command,
+}
+
+#[derive(Subcommand)]
+pub enum Command {
+    /// Initialize AVIS home directory
+    Init {
+        /// Override default home path (~/.avis)
+        #[arg(long)]
+        home: Option<String>,
+    },
+
+    /// Add a new identity
+    Add {
+        #[command(subcommand)]
+        target: AddTarget,
+    },
+
+    /// List all identities
+    #[command(alias = "list")]
+    Ls,
+
+    /// Show identity details
+    Show {
+        /// Identity name
+        name: String,
+    },
+
+    /// Remove an identity
+    #[command(alias = "remove", alias = "delete")]
+    Rm {
+        /// Identity name
+        name: String,
+    },
+
+    /// Send an email
+    Send {
+        /// Identity name to send as
+        identity: String,
+
+        /// Recipient email address
+        #[arg(short = 't', long = "to")]
+        to: String,
+
+        /// Subject line
+        #[arg(short = 's', long = "subject")]
+        subject: String,
+
+        /// Message body (plain text)
+        #[arg(short = 'b', long = "body")]
+        body: String,
+    },
+
+    /// Read inbox messages
+    Read {
+        /// Identity name
+        identity: String,
+
+        /// Return only the latest message
+        #[arg(long)]
+        latest: bool,
+
+        /// Filter by sender (case-insensitive substring)
+        #[arg(short = 'f', long = "from")]
+        from: Option<String>,
+
+        /// Filter by subject (case-insensitive substring)
+        #[arg(short = 's', long = "subject")]
+        subject: Option<String>,
+
+        /// Number of messages to return (default: 10)
+        #[arg(short = 'n', long = "count", default_value = "10")]
+        count: usize,
+
+        /// Full output including headers and metadata
+        #[arg(long)]
+        verbose: bool,
+    },
+
+    /// Wait for a matching email to arrive
+    Wait {
+        /// Identity name
+        identity: String,
+
+        /// Match on sender (case-insensitive substring)
+        #[arg(short = 'f', long = "from")]
+        from: Option<String>,
+
+        /// Match on subject (case-insensitive substring)
+        #[arg(short = 's', long = "subject")]
+        subject: Option<String>,
+
+        /// Seconds to wait before timeout (default: 60)
+        #[arg(short = 't', long = "timeout", default_value = "60")]
+        timeout: u64,
+    },
+
+    /// Extract OTP codes or links from an email
+    Extract {
+        /// Identity name
+        identity: String,
+
+        /// Target a specific message by ID (default: latest)
+        #[arg(long = "id")]
+        message_id: Option<String>,
+
+        /// Extract all numeric codes (4-8 digits)
+        #[arg(long, conflicts_with_all = ["links", "first_code", "first_link"])]
+        codes: bool,
+
+        /// Extract all URLs
+        #[arg(long, conflicts_with_all = ["codes", "first_code", "first_link"])]
+        links: bool,
+
+        /// Extract first numeric code found
+        #[arg(long, conflicts_with_all = ["codes", "links", "first_link"])]
+        first_code: bool,
+
+        /// Extract first URL found
+        #[arg(long, conflicts_with_all = ["codes", "links", "first_code"])]
+        first_link: bool,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum AddTarget {
+    /// Add a new Gmail identity via OAuth2
+    Id {
+        /// Short name for this identity (e.g. ops, personal, work)
+        name: String,
+
+        /// Gmail address to authenticate
+        email: String,
+    },
+}
