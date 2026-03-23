@@ -47,7 +47,7 @@ src/
 - Simplest solution wins. New abstraction = justify it first
 
 ## Known Quirks
-- `imap` + `lettre` in Cargo.toml — NOT used. Gmail REST API only
+- `imap` + `lettre` + `native-tls` removed from Cargo.toml — Gmail REST API only
 - `format_ts`/`days_to_ymd` duplicated in send.rs + read.rs — known tech debt
 - `rand = "0.8"` pinned — chacha20poly1305 compatibility, do not upgrade
 - CLIENT_ID/CLIENT_SECRET hardcoded in identity.rs — never commit real values
