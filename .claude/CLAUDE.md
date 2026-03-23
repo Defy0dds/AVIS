@@ -77,7 +77,8 @@ src/
 - base64 decode needs padding normalization — see `decode_base64url()` in read.rs
 
 ## Workflow
-1. **Plan first** — for any task >2 files: write plan as comments before coding
+1. **Plan before any new feature** — before writing any code, explain in plain English: the end-to-end flow, which files will be touched and why, and what the expected behavior looks like from the user's perspective. Wait for explicit approval before writing any code.
+2. **Plan first** — for any task >2 files: write plan as comments before coding
 2. **Verify with evidence** — run the binary, show actual output. Never claim it works without running it
 3. **Test loop**: `cargo build` → `cargo fmt --check` → `cargo clippy -- -D warnings` → smoke test
 4. **One task at a time** — finish and verify before moving on
