@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "build-debug",
+      "runtimeExecutable": "cargo",
+      "runtimeArgs": ["build"],
+      "port": 0
+    },
+    {
+      "name": "build-release",
+      "runtimeExecutable": "cargo",
+      "runtimeArgs": ["build", "--release"],
+      "port": 0
+    },
+    {
+      "name": "clippy",
+      "runtimeExecutable": "cargo",
+      "runtimeArgs": ["clippy", "--", "-D", "warnings"],
+      "port": 0
+    },
+    {
+      "name": "fmt-check",
+      "runtimeExecutable": "cargo",
+      "runtimeArgs": ["fmt", "--check"],
+      "port": 0
+    }
+  ]
+}

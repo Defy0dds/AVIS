@@ -155,3 +155,106 @@ fn extract_links(text: &str) -> Vec<String> {
 
     links
 }
+
+// -- Tests -----------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::{extract_codes, extract_links};
+
+    // ── extract_codes ──────────────────────────────────────────────────────
+
+    #[test]
+    fn codes_empty_input() {
+        assert!(extract_codes("").is_empty());
+    }
+
+    #[test]
+    fn codes_no_digits() {
+        assert!(extract_codes("hello world").is_empty());
+    }
+
+    #[test]
+    fn codes_three_digits_below_min() {
+        // 3 digits is too short — must not be extracted
+        assert!(extract_codes("123").is_empty());
+    }
+
+    #[test]
+    fn codes_four_digits_min_boundary() {
+        assert_eq!(extract_codes("1234"), vec!["1234"]);
+    }
+
+    #[test]
+    fn codes_eight_digits_max_boundary() {
+        assert_eq!(extract_codes("12345678"), vec!["12345678"]);
+    }
+
+    #[test]
+    fn codes_nine_digits_above_max() {
+        // 9 digits is too long — must not be extracted
+        assert!(extract_codes("123456789").is_empty());
+    }
+
+    #[test]
+    fn codes_multiple_matches() {
+        let result = extract_codes("pin: 4321 and token: 876543");
+        assert_eq!(result, vec!["4321", "876543"]);
+    }
+
+    #[test]
+    fn codes_surrounded_by_non_digit_chars() {
+        let result = extract_codes("code=482910.");
+        assert_eq!(result, vec!["482910"]);
+    }
+
+    #[test]
+    fn codes_long_number_excluded_valid_neighbors_kept() {
+        // 123456789 is 9 digits (skipped); flanking 4-digit codes are valid
+        let result = extract_codes("1234 123456789 5678");
+        assert_eq!(result, vec!["1234", "5678"]);
+    }
+
+    // ── extract_links ──────────────────────────────────────────────────────
+
+    #[test]
+    fn links_empty_input() {
+        assert!(extract_links("").is_empty());
+    }
+
+    #[test]
+    fn links_no_urls() {
+        assert!(extract_links("hello world, no links here").is_empty());
+    }
+
+    #[test]
+    fn links_single_https() {
+        let result = extract_links("visit https://example.com now");
+        assert_eq!(result, vec!["https://example.com"]);
+    }
+
+    #[test]
+    fn links_single_http() {
+        let result = extract_links("see http://example.com/path");
+        assert_eq!(result, vec!["http://example.com/path"]);
+    }
+
+    #[test]
+    fn links_multiple_urls() {
+        let result = extract_links("a https://one.com b https://two.com/x c");
+        assert_eq!(result, vec!["https://one.com", "https://two.com/x"]);
+    }
+
+    #[test]
+    fn links_trailing_punctuation_stripped() {
+        // Trailing '.' is not alphanumeric/'/'/':' so trim_matches removes it
+        let result = extract_links("https://example.com.");
+        assert_eq!(result, vec!["https://example.com"]);
+    }
+
+    #[test]
+    fn links_ftp_not_extracted() {
+        // Only http:// and https:// schemes are extracted
+        assert!(extract_links("ftp://example.com").is_empty());
+    }
+}

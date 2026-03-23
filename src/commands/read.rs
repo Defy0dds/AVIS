@@ -318,3 +318,75 @@ fn days_to_ymd(mut days: u64) -> (u64, u64, u64) {
 fn is_leap(y: u64) -> bool {
     y.is_multiple_of(4) && (!y.is_multiple_of(100) || y.is_multiple_of(400))
 }
+
+// -- Tests -----------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::clean_body;
+
+    #[test]
+    fn clean_empty_input() {
+        assert_eq!(clean_body(""), "");
+    }
+
+    #[test]
+    fn clean_no_special_lines() {
+        assert_eq!(clean_body("Hello\nWorld"), "Hello\nWorld");
+    }
+
+    #[test]
+    fn clean_strips_quoted_lines() {
+        let input = "> this is a quote\nActual content";
+        assert_eq!(clean_body(input), "Actual content");
+    }
+
+    #[test]
+    fn clean_strips_multiple_quoted_lines() {
+        let input = "> line one\n> line two\nReal content\n> line three";
+        assert_eq!(clean_body(input), "Real content");
+    }
+
+    #[test]
+    fn clean_strips_on_wrote_line() {
+        // Lines that both start with "On " and contain "wrote:" are removed
+        let input = "On Mon, 1 Jan 2024, Bob <b@b.com> wrote:\n> quoted\nActual";
+        assert_eq!(clean_body(input), "Actual");
+    }
+
+    #[test]
+    fn clean_keeps_on_line_without_wrote() {
+        // "On" without "wrote:" must be preserved
+        let input = "On the other hand, it works.\nMore content";
+        assert_eq!(clean_body(input), "On the other hand, it works.\nMore content");
+    }
+
+    #[test]
+    fn clean_strips_indented_on_wrote_line() {
+        // trim_start means leading spaces don't protect an On…wrote: line
+        let input = "  On Monday Alice wrote:\nReply body";
+        assert_eq!(clean_body(input), "Reply body");
+    }
+
+    #[test]
+    fn clean_strips_trailing_blank_lines() {
+        let input = "Content\n\n\n";
+        assert_eq!(clean_body(input), "Content");
+    }
+
+    #[test]
+    fn clean_truncates_above_2000_chars() {
+        let long = "a".repeat(2001);
+        let result = clean_body(&long);
+        assert!(result.starts_with(&"a".repeat(2000)));
+        assert!(result.ends_with("...[truncated]"));
+    }
+
+    #[test]
+    fn clean_no_truncation_at_exactly_2000_chars() {
+        let exactly = "a".repeat(2000);
+        let result = clean_body(&exactly);
+        assert_eq!(result, exactly);
+        assert!(!result.contains("...[truncated]"));
+    }
+}
