@@ -284,7 +284,7 @@ fn collect_attachments(parts: &[Part], out: &mut Vec<AttachmentInfo>) {
                         // Fix #7: sanitize filename before including in JSON output
                         let safe_name = match sanitize::sanitize_filename(filename) {
                             Ok(n) => n,
-                            Err(_) => continue, // skip attachments with invalid filenames
+                            Err(_) => format!("attachment_{}", out.len()),
                         };
                         out.push(AttachmentInfo {
                             filename: safe_name,
