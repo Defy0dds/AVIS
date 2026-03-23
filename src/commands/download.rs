@@ -5,7 +5,7 @@ use crate::{
         send::load_credentials,
     },
     errors::AvisError,
-    output,
+    output, sanitize,
 };
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use serde::Serialize;
@@ -79,12 +79,14 @@ pub(crate) async fn download_attachments(
         let bytes = decode_attachment_data(&att_data.data)
             .map_err(|e| AvisError::new("decode_error", format!("{}: {}", att.filename, e)))?;
 
-        let file_path = dir.join(&att.filename);
+        // Fix #5: sanitize filename to prevent path traversal
+        let safe_name = sanitize::sanitize_filename(&att.filename)?;
+        let file_path = dir.join(&safe_name);
         std::fs::write(&file_path, &bytes)
-            .map_err(|e| AvisError::fs_error(format!("Cannot write {}: {}", att.filename, e)))?;
+            .map_err(|e| AvisError::fs_error(format!("Cannot write {}: {}", safe_name, e)))?;
 
         saved.push(SavedFile {
-            filename: att.filename.clone(),
+            filename: safe_name,
             path: file_path.to_string_lossy().to_string(),
             size: bytes.len() as u64,
         });
