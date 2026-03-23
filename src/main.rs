@@ -45,8 +45,9 @@ async fn main() {
             to,
             subject,
             body,
+            attach,
         } => {
-            commands::send::run(&home, &identity, &to, &subject, &body).await;
+            commands::send::run(&home, &identity, &to, &subject, &body, &attach).await;
         }
 
         Command::Read {
@@ -83,6 +84,14 @@ async fn main() {
                 timeout,
             )
             .await;
+        }
+
+        Command::Download {
+            identity,
+            message_id,
+            dir,
+        } => {
+            commands::download::run(&home, &identity, message_id.as_deref(), &dir).await;
         }
 
         Command::Extract {

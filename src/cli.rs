@@ -60,6 +60,10 @@ pub enum Command {
         /// Message body (plain text)
         #[arg(short = 'b', long = "body")]
         body: String,
+
+        /// Attach file(s) to the email (can be repeated)
+        #[arg(short = 'a', long = "attach")]
+        attach: Vec<String>,
     },
 
     /// Read inbox messages
@@ -130,6 +134,20 @@ pub enum Command {
         /// Extract first URL found
         #[arg(long, conflicts_with_all = ["codes", "links", "first_code"])]
         first_link: bool,
+    },
+
+    /// Download attachments from an email
+    Download {
+        /// Identity name
+        identity: String,
+
+        /// Message ID to download attachments from (default: latest)
+        #[arg(long = "id")]
+        message_id: Option<String>,
+
+        /// Directory to save attachments to (default: current dir)
+        #[arg(short = 'd', long = "dir", default_value = ".")]
+        dir: String,
     },
 }
 

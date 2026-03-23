@@ -103,5 +103,5 @@ gws CLI is Google's own answer to Workspace automation — but it's a general-pu
 
 - v2: Microsoft/Outlook provider (same architecture, different OAuth endpoints)
 - Provider trait abstraction inside one codebase — no fork
-- Attachment support
+- ~~Attachment support~~ ✓ (send with `-a`, read shows metadata, `download` command)
 - MCP server wrapper so any MCP-compatible agent can use AVIS directly

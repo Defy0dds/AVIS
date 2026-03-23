@@ -62,7 +62,7 @@ src/
   output.rs        # print_json() + SCHEMA_VERSION
   auth/pkce.rs     # PKCE challenge generation
   auth/refresh.rs  # token exchange + refresh (OAuthCredentials, AccessToken)
-  commands/        # one file per command
+  commands/        # one file per command (incl. download.rs for attachments)
 ```
 
 ## Rules (never violate)
@@ -97,10 +97,11 @@ src/
 avis init [--home <path>]
 avis add id <name> <email>    # OAuth2 PKCE, opens browser
 avis ls / show <n> / rm <n>
-avis send <n> -t <to> -s <subject> -b <body>
+avis send <n> -t <to> -s <subject> -b <body> [-a <file>]...
 avis read <n> [--latest] [-f <from>] [-s <subject>] [-n <count>] [--verbose]
 avis wait <n> [-f <from>] [-s <subject>] [-t <seconds>]
 avis extract <n> [--first-code|--codes|--first-link|--links] [--id <msg_id>]
+avis download <n> [--id <msg_id>] [-d <dir>]
 ```
 
 ## Exit Codes

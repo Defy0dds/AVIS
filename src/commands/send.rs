@@ -22,7 +22,14 @@ struct SendFailure {
     message: String,
 }
 
-pub async fn run(home: &Path, identity: &str, to: &str, subject: &str, body: &str) {
+pub async fn run(
+    home: &Path,
+    identity: &str,
+    to: &str,
+    subject: &str,
+    body: &str,
+    attachments: &[String],
+) {
     let cfg = config::load_identity(home, identity).unwrap_or_else(|e| e.bail(1));
 
     let creds = load_credentials(home, identity).unwrap_or_else(|e| e.bail(2));
@@ -38,10 +45,15 @@ pub async fn run(home: &Path, identity: &str, to: &str, subject: &str, body: &st
         cfg.email.replace('@', ".at.")
     );
 
-    let raw_email = format!(
-        "From: {}\r\nTo: {}\r\nSubject: {}\r\nMessage-ID: {}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n{}",
-        cfg.email, to, subject, message_id, body
-    );
+    let raw_email = if attachments.is_empty() {
+        format!(
+            "From: {}\r\nTo: {}\r\nSubject: {}\r\nMessage-ID: {}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n{}",
+            cfg.email, to, subject, message_id, body
+        )
+    } else {
+        build_multipart_email(&cfg.email, to, subject, &message_id, body, attachments)
+            .unwrap_or_else(|e| e.bail(1))
+    };
 
     // Gmail API expects base64url encoded raw email
     let encoded = URL_SAFE_NO_PAD.encode(raw_email.as_bytes());
@@ -108,6 +120,119 @@ pub async fn run(home: &Path, identity: &str, to: &str, subject: &str, body: &st
         message_id,
         ts,
     });
+}
+
+// -- MIME multipart --------------------------------------------------------
+
+fn build_multipart_email(
+    from: &str,
+    to: &str,
+    subject: &str,
+    message_id: &str,
+    body: &str,
+    attachments: &[String],
+) -> Result<String, AvisError> {
+    use base64::engine::general_purpose::STANDARD;
+
+    let boundary = format!("avis-{}", uuid_simple());
+
+    let mut email = String::new();
+    email.push_str(&format!("From: {}\r\n", from));
+    email.push_str(&format!("To: {}\r\n", to));
+    email.push_str(&format!("Subject: {}\r\n", subject));
+    email.push_str(&format!("Message-ID: {}\r\n", message_id));
+    email.push_str("MIME-Version: 1.0\r\n");
+    email.push_str(&format!(
+        "Content-Type: multipart/mixed; boundary=\"{}\"\r\n",
+        boundary
+    ));
+    email.push_str("\r\n");
+
+    // Text body part
+    email.push_str(&format!("--{}\r\n", boundary));
+    email.push_str("Content-Type: text/plain; charset=utf-8\r\n");
+    email.push_str("\r\n");
+    email.push_str(body);
+    email.push_str("\r\n");
+
+    // Attachment parts
+    for path_str in attachments {
+        let path = std::path::Path::new(path_str);
+
+        if !path.exists() {
+            return Err(AvisError::new(
+                "attachment_not_found",
+                format!("File not found: {}", path_str),
+            ));
+        }
+
+        let file_bytes = std::fs::read(path)
+            .map_err(|e| AvisError::new("attachment_read_error", format!("{}: {}", path_str, e)))?;
+
+        let filename = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("attachment");
+
+        let mime = guess_mime_type(filename);
+        let b64 = STANDARD.encode(&file_bytes);
+
+        email.push_str(&format!("--{}\r\n", boundary));
+        email.push_str(&format!(
+            "Content-Type: {}; name=\"{}\"\r\n",
+            mime, filename
+        ));
+        email.push_str("Content-Transfer-Encoding: base64\r\n");
+        email.push_str(&format!(
+            "Content-Disposition: attachment; filename=\"{}\"\r\n",
+            filename
+        ));
+        email.push_str("\r\n");
+
+        // Wrap base64 at 76 chars per RFC 2045
+        for chunk in b64.as_bytes().chunks(76) {
+            email.push_str(std::str::from_utf8(chunk).unwrap_or_default());
+            email.push_str("\r\n");
+        }
+    }
+
+    // Closing boundary
+    email.push_str(&format!("--{}--\r\n", boundary));
+
+    Ok(email)
+}
+
+fn guess_mime_type(filename: &str) -> &'static str {
+    let ext = filename
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    match ext.as_str() {
+        "pdf" => "application/pdf",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "svg" => "image/svg+xml",
+        "txt" => "text/plain",
+        "html" | "htm" => "text/html",
+        "csv" => "text/csv",
+        "json" => "application/json",
+        "xml" => "application/xml",
+        "zip" => "application/zip",
+        "gz" | "gzip" => "application/gzip",
+        "tar" => "application/x-tar",
+        "doc" => "application/msword",
+        "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "xls" => "application/vnd.ms-excel",
+        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "ppt" => "application/vnd.ms-powerpoint",
+        "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "mp3" => "audio/mpeg",
+        "mp4" => "video/mp4",
+        "webm" => "video/webm",
+        _ => "application/octet-stream",
+    }
 }
 
 // -- Helpers ---------------------------------------------------------------
