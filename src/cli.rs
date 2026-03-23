@@ -60,6 +60,10 @@ pub enum Command {
         /// Message body (plain text)
         #[arg(short = 'b', long = "body")]
         body: String,
+
+        /// Attach file(s) to the email (can be repeated)
+        #[arg(short = 'a', long = "attach")]
+        attach: Vec<String>,
     },
 
     /// Read inbox messages
@@ -86,6 +90,10 @@ pub enum Command {
         /// Full output including headers and metadata
         #[arg(long)]
         verbose: bool,
+
+        /// Auto-download attachments to this directory
+        #[arg(long = "download-dir")]
+        download_dir: Option<String>,
     },
 
     /// Wait for a matching email to arrive
@@ -104,6 +112,10 @@ pub enum Command {
         /// Seconds to wait before timeout (default: 60)
         #[arg(short = 't', long = "timeout", default_value = "60")]
         timeout: u64,
+
+        /// Auto-download attachments to this directory
+        #[arg(long = "download-dir")]
+        download_dir: Option<String>,
     },
 
     /// Extract OTP codes or links from an email
@@ -130,6 +142,20 @@ pub enum Command {
         /// Extract first URL found
         #[arg(long, conflicts_with_all = ["codes", "links", "first_code"])]
         first_link: bool,
+    },
+
+    /// Download attachments from an email
+    Download {
+        /// Identity name
+        identity: String,
+
+        /// Message ID to download attachments from (default: latest)
+        #[arg(long = "id")]
+        message_id: Option<String>,
+
+        /// Directory to save attachments to (default: current dir)
+        #[arg(short = 'd', long = "dir", default_value = ".")]
+        dir: String,
     },
 }
 

@@ -1,4 +1,9 @@
-use crate::{auth::refresh, commands::send::load_credentials, errors::AvisError, output};
+use crate::{
+    auth::refresh,
+    commands::{download::SavedFile, send::load_credentials},
+    errors::AvisError,
+    output,
+};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -6,15 +11,28 @@ use std::path::Path;
 struct ReadResult {
     schema_version: &'static str,
     messages: Vec<EmailMessage>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    downloaded_files: Vec<SavedFile>,
 }
 
 #[derive(Serialize)]
 pub(crate) struct EmailMessage {
-    id: String,
-    from: String,
-    subject: String,
+    pub(crate) id: String,
+    pub(crate) from: String,
+    pub(crate) subject: String,
     pub(crate) body: String,
-    ts: String,
+    pub(crate) ts: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub(crate) attachments: Vec<AttachmentInfo>,
+}
+
+#[derive(Serialize, Clone)]
+pub(crate) struct AttachmentInfo {
+    pub(crate) filename: String,
+    pub(crate) mime_type: String,
+    pub(crate) size: u64,
+    #[serde(skip_serializing)]
+    pub(crate) attachment_id: String,
 }
 
 #[derive(Deserialize)]
@@ -51,15 +69,21 @@ struct Header {
 #[derive(Deserialize)]
 struct Body {
     data: Option<String>,
+    #[serde(rename = "attachmentId")]
+    attachment_id: Option<String>,
+    size: Option<u64>,
 }
 
 #[derive(Deserialize)]
 struct Part {
     #[serde(rename = "mimeType")]
     mime_type: Option<String>,
+    filename: Option<String>,
     body: Option<Body>,
+    parts: Option<Vec<Part>>,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn run(
     home: &Path,
     identity: &str,
@@ -68,6 +92,7 @@ pub async fn run(
     subject_filter: Option<&str>,
     count: usize,
     _verbose: bool,
+    download_dir: Option<&str>,
 ) {
     let creds = load_credentials(home, identity).unwrap_or_else(|e| e.bail(2));
 
@@ -119,9 +144,30 @@ pub async fn run(
         messages.push(msg);
     }
 
+    // Auto-download attachments if requested
+    let mut downloaded_files = Vec::new();
+    if let Some(dir) = download_dir {
+        let dir_path = Path::new(dir);
+        for msg in &messages {
+            if !msg.attachments.is_empty() {
+                let saved = crate::commands::download::download_attachments(
+                    &client,
+                    &token.access_token,
+                    &msg.id,
+                    &msg.attachments,
+                    dir_path,
+                )
+                .await
+                .unwrap_or_else(|e| e.bail(2));
+                downloaded_files.extend(saved);
+            }
+        }
+    }
+
     output::print_json(&ReadResult {
         schema_version: output::SCHEMA_VERSION,
         messages,
+        downloaded_files,
     });
 }
 
@@ -172,6 +218,9 @@ pub async fn fetch_message(
     // Extract body - prefer plain text part, fall back to body.data
     let raw_body = extract_plain_text(&payload.body, &payload.parts);
 
+    // Extract attachment metadata
+    let attachments = extract_attachment_info(&payload.parts);
+
     // Clean body: strip HTML, remove quoted lines, trim, cap at 2000 chars
     let clean_body = clean_body(&raw_body);
 
@@ -189,6 +238,7 @@ pub async fn fetch_message(
         subject,
         body: clean_body,
         ts,
+        attachments,
     })
 }
 
@@ -214,6 +264,41 @@ fn extract_plain_text(body: &Option<Body>, parts: &Option<Vec<Part>>) -> String 
     }
 
     String::new()
+}
+
+fn extract_attachment_info(parts: &Option<Vec<Part>>) -> Vec<AttachmentInfo> {
+    let mut attachments = Vec::new();
+    if let Some(parts) = parts {
+        collect_attachments(parts, &mut attachments);
+    }
+    attachments
+}
+
+fn collect_attachments(parts: &[Part], out: &mut Vec<AttachmentInfo>) {
+    for part in parts {
+        // A part is an attachment if it has a non-empty filename and an attachmentId
+        if let Some(filename) = &part.filename {
+            if !filename.is_empty() {
+                if let Some(body) = &part.body {
+                    if let Some(att_id) = &body.attachment_id {
+                        out.push(AttachmentInfo {
+                            filename: filename.clone(),
+                            mime_type: part
+                                .mime_type
+                                .clone()
+                                .unwrap_or_else(|| "application/octet-stream".to_string()),
+                            size: body.size.unwrap_or(0),
+                            attachment_id: att_id.clone(),
+                        });
+                    }
+                }
+            }
+        }
+        // Recurse into nested parts (e.g. multipart/mixed inside multipart/alternative)
+        if let Some(sub_parts) = &part.parts {
+            collect_attachments(sub_parts, out);
+        }
+    }
 }
 
 fn decode_base64url(data: &str) -> String {
@@ -358,7 +443,10 @@ mod tests {
     fn clean_keeps_on_line_without_wrote() {
         // "On" without "wrote:" must be preserved
         let input = "On the other hand, it works.\nMore content";
-        assert_eq!(clean_body(input), "On the other hand, it works.\nMore content");
+        assert_eq!(
+            clean_body(input),
+            "On the other hand, it works.\nMore content"
+        );
     }
 
     #[test]
