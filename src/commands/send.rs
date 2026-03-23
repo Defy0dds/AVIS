@@ -166,6 +166,16 @@ fn build_multipart_email(
             ));
         }
 
+        const MAX_ATTACHMENT_BYTES: u64 = 20 * 1024 * 1024; // 20 MB
+        let meta = std::fs::metadata(path)
+            .map_err(|e| AvisError::new("attachment_read_error", format!("{}: {}", path_str, e)))?;
+        if meta.len() > MAX_ATTACHMENT_BYTES {
+            return Err(AvisError::new(
+                "attachment_too_large",
+                format!("{} is {} bytes, exceeds 20 MB limit", path_str, meta.len()),
+            ));
+        }
+
         let file_bytes = std::fs::read(path)
             .map_err(|e| AvisError::new("attachment_read_error", format!("{}: {}", path_str, e)))?;
 
@@ -183,15 +193,23 @@ fn build_multipart_email(
             mime, filename
         ));
         email.push_str("Content-Transfer-Encoding: base64\r\n");
-        email.push_str(&format!(
-            "Content-Disposition: attachment; filename=\"{}\"\r\n",
-            filename
-        ));
+        if filename.is_ascii() {
+            email.push_str(&format!(
+                "Content-Disposition: attachment; filename=\"{}\"\r\n",
+                filename
+            ));
+        } else {
+            email.push_str(&format!(
+                "Content-Disposition: attachment; filename*=UTF-8''{}\r\n",
+                percent_encode_filename(filename)
+            ));
+        }
         email.push_str("\r\n");
 
         // Wrap base64 at 76 chars per RFC 2045
         for chunk in b64.as_bytes().chunks(76) {
-            email.push_str(std::str::from_utf8(chunk).unwrap_or_default());
+            email
+                .push_str(std::str::from_utf8(chunk).expect("base64 output is always valid UTF-8"));
             email.push_str("\r\n");
         }
     }
@@ -200,6 +218,25 @@ fn build_multipart_email(
     email.push_str(&format!("--{}--\r\n", boundary));
 
     Ok(email)
+}
+
+/// RFC 5987 percent-encode a filename for Content-Disposition `filename*` parameter.
+fn percent_encode_filename(filename: &str) -> String {
+    let mut encoded = String::new();
+    for byte in filename.bytes() {
+        // attr-char from RFC 5987: unreserved chars that don't need encoding
+        if byte.is_ascii_alphanumeric()
+            || matches!(
+                byte,
+                b'!' | b'#' | b'$' | b'&' | b'+' | b'-' | b'.' | b'^' | b'_' | b'`' | b'|' | b'~'
+            )
+        {
+            encoded.push(byte as char);
+        } else {
+            encoded.push_str(&format!("%{:02X}", byte));
+        }
+    }
+    encoded
 }
 
 fn guess_mime_type(filename: &str) -> &'static str {
