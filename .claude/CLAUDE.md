@@ -79,13 +79,13 @@ src/
 ## Workflow
 1. **Plan before any new feature** — before writing any code, explain in plain English: the end-to-end flow, which files will be touched and why, and what the expected behavior looks like from the user's perspective. Wait for explicit approval before writing any code.
 2. **Plan first** — for any task >2 files: write plan as comments before coding
-2. **Verify with evidence** — run the binary, show actual output. Never claim it works without running it
-3. **Test loop**: `cargo build` → `cargo fmt --check` → `cargo clippy -- -D warnings` → smoke test
-4. **One task at a time** — finish and verify before moving on
-5. **After every correction** — update this file
-6. Stuck after 3 attempts? Add `// TODO: STUCK` and surface it. Don't silently fail
-7. Don't touch code outside your task scope — no "while I'm here" refactors
-8. Simplest solution wins. New abstraction = justify it first
+3. **Verify with evidence** — run the binary, show actual output. Never claim it works without running it
+4. **Test loop**: `cargo build` → `cargo fmt --check` → `cargo clippy -- -D warnings` → smoke test
+5. **One task at a time** — finish and verify before moving on
+6. **After every correction** — update this file
+7. Stuck after 3 attempts? Add `// TODO: STUCK` and surface it. Don't silently fail
+8. Don't touch code outside your task scope — no "while I'm here" refactors
+9. Simplest solution wins. New abstraction = justify it first
 
 ## Known Quirks
 - `imap` + `lettre` + `native-tls` removed from Cargo.toml — Gmail REST API only
