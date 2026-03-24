@@ -73,4 +73,4 @@ AVIS authenticates against Gmail via OAuth2 PKCE and uses the Gmail REST API for
 
 ## License
 
-MIT
+[Unspecified so far]
