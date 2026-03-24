@@ -17,27 +17,22 @@ cargo build --release
 # Binary at target/release/avis (or avis.exe on Windows)
 ```
 
-**Before building:** set `CLIENT_ID` and `CLIENT_SECRET` in `src/commands/identity.rs` to your Google OAuth2 credentials. See [Google Cloud Console](https://console.cloud.google.com/apis/credentials) to create them with Gmail API enabled.
-
 ## Quickstart
 
 ```bash
-# 1. Initialize AVIS home directory (~/.avis)
-avis init
+# 1. Add an identity (opens browser for OAuth2 — creates ~/.avis automatically)
+avis add id ops
 
-# 2. Add an identity (opens browser for OAuth2)
-avis add id ops ahmedz@example.com
-
-# 3. Send an email
+# 2. Send an email
 avis send ops -t recipient@example.com -s "Hello" -b "Message body"
 
-# 4. Read latest messages
+# 3. Read latest messages
 avis read ops --latest -n 5
 
-# 5. Wait for a specific email (poll until it arrives or timeout)
+# 4. Wait for a specific email (poll until it arrives or timeout)
 avis wait ops -f service@example.com -s "Verification" -t 60
 
-# 6. Extract OTP code from the latest matching email
+# 5. Extract OTP code from the latest matching email
 avis extract ops --first-code
 # → {"codes":["482910"]}
 ```
@@ -49,7 +44,7 @@ All output is flat JSON, designed for machine consumption.
 | Command | Description |
 |---------|-------------|
 | `avis init` | Create `~/.avis` directory structure |
-| `avis add id <name> <email>` | Add identity via OAuth2 PKCE |
+| `avis add id <name>` | Add identity via OAuth2 PKCE (email fetched automatically) |
 | `avis ls` | List all identities |
 | `avis show <name>` | Show identity details |
 | `avis rm <name>` | Remove an identity |
@@ -74,7 +69,6 @@ AVIS authenticates against Gmail via OAuth2 PKCE and uses the Gmail REST API for
 ## Limitations (v1)
 
 - Gmail only (Outlook/Microsoft planned for v2)
-- No attachment support yet
 - Requires Google OAuth2 client credentials
 
 ## License

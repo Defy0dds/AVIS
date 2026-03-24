@@ -116,7 +116,7 @@ pub async fn get_access_token(creds: &OAuthCredentials) -> Result<AccessToken, A
         if err.contains("invalid_grant") {
             return Err(AvisError::new(
                 "token_revoked",
-                "Refresh token revoked. Re-run: avis add id <name> <email>",
+                "Refresh token revoked. Re-run: avis add id <name>",
             ));
         }
         return Err(AvisError::imap_failure(format!(

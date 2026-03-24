@@ -96,7 +96,7 @@ src/
 ## Commands
 ```
 avis init [--home <path>]
-avis add id <name> <email>    # OAuth2 PKCE, opens browser
+avis add id <name>            # OAuth2 PKCE, opens browser; email fetched from Google
 avis ls / show <n> / rm <n>
 avis send <n> -t <to> -s <subject> -b <body> [-a <file>]...
 avis read <n> [--latest] [-f <from>] [-s <subject>] [-n <count>] [--verbose] [--download-dir <path>]
@@ -116,3 +116,4 @@ avis download <n> [--id <msg_id>] [-d <dir>]
 
 ## Corrections Log
 > Add entries here after every mistake. This file improves over time.
+- `avis add id` no longer takes an `email` arg — email is fetched from `GET /gmail/v1/users/me/profile` after OAuth. Update any references to the old `<name> <email>` signature.

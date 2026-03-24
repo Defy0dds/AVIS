@@ -24,8 +24,8 @@ async fn main() {
         }
 
         Command::Add { target } => match target {
-            AddTarget::Id { name, email } => {
-                commands::identity::add(&home, &name, &email).await;
+            AddTarget::Id { name } => {
+                commands::identity::add(&home, &name).await;
             }
         },
 

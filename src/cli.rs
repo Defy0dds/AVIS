@@ -165,8 +165,5 @@ pub enum AddTarget {
     Id {
         /// Short name for this identity (e.g. ops, personal, work)
         name: String,
-
-        /// Gmail address to authenticate
-        email: String,
     },
 }
