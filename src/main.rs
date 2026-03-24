@@ -8,7 +8,7 @@ mod output;
 mod sanitize;
 
 use clap::Parser;
-use cli::{AddTarget, Cli, Command};
+use cli::{Cli, Command};
 
 #[tokio::main]
 async fn main() {
@@ -23,11 +23,9 @@ async fn main() {
             commands::init::run(&target).await;
         }
 
-        Command::Add { target } => match target {
-            AddTarget::Id { name } => {
-                commands::identity::add(&home, &name).await;
-            }
-        },
+        Command::Add { name } => {
+            commands::identity::add(&home, &name).await;
+        }
 
         Command::Ls => {
             commands::identity::list(&home).await;

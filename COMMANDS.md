@@ -31,18 +31,17 @@ avis init [--home <path>]
 
 ---
 
-## `avis add id`
+## `avis add`
 
-Add a new Gmail identity via OAuth2 PKCE flow. Opens a browser, waits for Google to redirect back, exchanges the code for a refresh token, and stores encrypted credentials on disk.
+Add a new Gmail identity via OAuth2 PKCE flow. Opens a browser, waits for Google to redirect back, exchanges the code for a refresh token, and stores encrypted credentials on disk. The email address is fetched automatically from the Google profile after OAuth.
 
 ```
-avis add id <name> <email>
+avis add <name>
 ```
 
 | Argument | Description |
 |----------|-------------|
 | `name` | Short identifier for this identity (e.g. `ops`, `personal`) |
-| `email` | Gmail address to authenticate |
 
 Progress messages are written to **stderr** during the OAuth flow. On success:
 

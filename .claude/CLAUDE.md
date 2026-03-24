@@ -55,7 +55,7 @@ Gmail REST API calls                 # per-command logic
 ```
 src/
   main.rs          # dispatch only — match cli.command → commands::*
-  cli.rs           # all Clap definitions (Cli, Command, AddTarget enums)
+  cli.rs           # all Clap definitions (Cli, Command enums)
   config.rs        # home resolution, identity paths, IdentityConfig
   crypto.rs        # encrypt/decrypt credentials (ChaCha20-Poly1305)
   errors.rs        # AvisError with named constructors
@@ -96,7 +96,7 @@ src/
 ## Commands
 ```
 avis init [--home <path>]
-avis add id <name>            # OAuth2 PKCE, opens browser; email fetched from Google
+avis add <name>               # OAuth2 PKCE, opens browser; email fetched from Google
 avis ls / show <n> / rm <n>
 avis send <n> -t <to> -s <subject> -b <body> [-a <file>]...
 avis read <n> [--latest] [-f <from>] [-s <subject>] [-n <count>] [--verbose] [--download-dir <path>]
@@ -117,3 +117,4 @@ avis download <n> [--id <msg_id>] [-d <dir>]
 ## Corrections Log
 > Add entries here after every mistake. This file improves over time.
 - `avis add id` no longer takes an `email` arg — email is fetched from `GET /gmail/v1/users/me/profile` after OAuth. Update any references to the old `<name> <email>` signature.
+- `avis add id <name>` collapsed to `avis add <name>` — `AddTarget` enum removed. No subcommand between `add` and the name arg.

@@ -55,7 +55,7 @@ impl AvisError {
         Self::new(
             "credentials_corrupt",
             format!(
-                "credentials.enc for '{}' is corrupt or unreadable. Re-run: avis add id {} <email>",
+                "credentials.enc for '{}' is corrupt or unreadable. Re-run: avis add {}",
                 name, name
             ),
         )
@@ -70,7 +70,7 @@ impl AvisError {
         Self::new(
             "token_revoked",
             format!(
-                "Refresh token for '{}' has been revoked. Re-run: avis add id {} <email>",
+                "Refresh token for '{}' has been revoked. Re-run: avis add {}",
                 name, name
             ),
         )
