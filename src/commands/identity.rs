@@ -28,25 +28,39 @@ struct AddResult {
     status: &'static str,
 }
 
-pub async fn add(home: &Path, name: &str, email: &str) {
-    // 1. Check identity doesn't already exist
+pub async fn add(home: &Path, name: &str) {
+    // 1. Auto-initialize ~/.avis if it doesn't exist yet
+    if !home.exists() {
+        let dirs = [
+            home.to_path_buf(),
+            config::identities_dir(home),
+            config::logs_dir(home),
+        ];
+        for dir in &dirs {
+            std::fs::create_dir_all(dir)
+                .unwrap_or_else(|e| AvisError::fs_error(e.to_string()).bail(2));
+        }
+        config::persist_home(home).unwrap_or_else(|e| e.bail(2));
+    }
+
+    // 2. Check identity doesn't already exist
     let id_dir = config::identity_dir(home, name);
     if id_dir.exists() {
         AvisError::identity_exists(name).bail(1);
     }
 
-    // 2. Create identity directory
+    // 3. Create identity directory
     std::fs::create_dir_all(&id_dir).unwrap_or_else(|e| AvisError::fs_error(e.to_string()).bail(2));
 
-    // 3. Generate PKCE challenge
+    // 4. Generate PKCE challenge
     let pkce = PkceChallenge::new();
 
-    // 4. Find a free loopback port (up to 5 attempts)
+    // 5. Find a free loopback port (up to 5 attempts)
     let (listener, port) = bind_loopback_port().await.unwrap_or_else(|e| e.bail(2));
 
     let redirect_uri = format!("http://127.0.0.1:{}", port);
 
-    // 5. Build Google OAuth2 authorization URL
+    // 6. Build Google OAuth2 authorization URL
     let auth_url = format!(
         "https://accounts.google.com/o/oauth2/v2/auth\
          ?client_id={}\
@@ -63,7 +77,7 @@ pub async fn add(home: &Path, name: &str, email: &str) {
         urlencoding::encode(&pkce.code_challenge),
     );
 
-    // 6. Open browser
+    // 7. Open browser
     eprintln!("Opening browser for Google authentication...");
     eprintln!("If the browser does not open, visit:\n{}", auth_url);
 
@@ -71,13 +85,13 @@ pub async fn add(home: &Path, name: &str, email: &str) {
         eprintln!("Could not open browser automatically. Please open the URL above manually.");
     }
 
-    // 7. Wait for redirect with auth code
+    // 8. Wait for redirect with auth code
     eprintln!("Waiting for Google to redirect back...");
     let code = wait_for_auth_code(listener)
         .await
         .unwrap_or_else(|e| e.bail(2));
 
-    // 8. Exchange code for refresh token
+    // 9. Exchange code for refresh token
     let creds = refresh::exchange_code(
         &code,
         &pkce.code_verifier,
@@ -88,7 +102,15 @@ pub async fn add(home: &Path, name: &str, email: &str) {
     .await
     .unwrap_or_else(|e| e.bail(2));
 
-    // 9. Generate master key and encrypt credentials
+    // 10. Get access token and fetch the authenticated email address from Gmail
+    let token = refresh::get_access_token(&creds)
+        .await
+        .unwrap_or_else(|e| e.bail(2));
+    let email = fetch_email_from_google(&token.access_token)
+        .await
+        .unwrap_or_else(|e| e.bail(2));
+
+    // 11. Generate master key and encrypt credentials
     let key_path = config::identity_master_key_path(home, name);
     let key = crypto::generate_master_key(&key_path).unwrap_or_else(|e| e.bail(2));
 
@@ -101,8 +123,8 @@ pub async fn add(home: &Path, name: &str, email: &str) {
     std::fs::write(&creds_path, &encrypted)
         .unwrap_or_else(|e| AvisError::fs_error(e.to_string()).bail(2));
 
-    // 10. Write config.json
-    let identity_config = IdentityConfig::new(name, email);
+    // 12. Write config.json
+    let identity_config = IdentityConfig::new(name, &email);
     let config_json = serde_json::to_string_pretty(&identity_config)
         .unwrap_or_else(|e| AvisError::fs_error(e.to_string()).bail(2));
 
@@ -113,9 +135,13 @@ pub async fn add(home: &Path, name: &str, email: &str) {
     output::print_json(&AddResult {
         schema_version: output::SCHEMA_VERSION,
         identity: name.to_string(),
-        email: email.to_string(),
+        email: email.clone(),
         status: "ready",
     });
+    eprintln!(
+        "Identity '{}' ready. Try: avis read {} --latest",
+        name, name
+    );
 }
 
 // -- list ------------------------------------------------------------------
@@ -232,6 +258,32 @@ async fn bind_loopback_port() -> Result<(tokio::net::TcpListener, u16), AvisErro
     Err(AvisError::oauth_failed(
         "Could not bind loopback port after 5 attempts",
     ))
+}
+
+/// Fetch the authenticated account's email address from the Gmail profile endpoint.
+async fn fetch_email_from_google(access_token: &str) -> Result<String, AvisError> {
+    let client = reqwest::Client::new();
+    let url = "https://gmail.googleapis.com/gmail/v1/users/me/profile";
+
+    #[derive(serde::Deserialize)]
+    struct Profile {
+        #[serde(rename = "emailAddress")]
+        email_address: String,
+    }
+
+    let resp = client
+        .get(url)
+        .bearer_auth(access_token)
+        .send()
+        .await
+        .map_err(|e| AvisError::oauth_failed(e.to_string()))?;
+
+    let profile: Profile = resp
+        .json()
+        .await
+        .map_err(|e| AvisError::oauth_failed(e.to_string()))?;
+
+    Ok(profile.email_address)
 }
 
 /// Accept one HTTP request on the listener and extract the `code` query param.
