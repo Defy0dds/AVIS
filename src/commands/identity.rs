@@ -278,6 +278,13 @@ async fn fetch_email_from_google(access_token: &str) -> Result<String, AvisError
         .await
         .map_err(|e| AvisError::oauth_failed(e.to_string()))?;
 
+    if !resp.status().is_success() {
+        return Err(AvisError::oauth_failed(format!(
+            "Gmail profile request failed with status {}",
+            resp.status()
+        )));
+    }
+
     let profile: Profile = resp
         .json()
         .await
