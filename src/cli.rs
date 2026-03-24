@@ -21,10 +21,10 @@ pub enum Command {
         home: Option<String>,
     },
 
-    /// Add a new identity
+    /// Add a new identity via OAuth2 PKCE
     Add {
-        #[command(subcommand)]
-        target: AddTarget,
+        /// Short name for this identity (e.g. ops, personal, work)
+        name: String,
     },
 
     /// List all identities
@@ -156,14 +156,5 @@ pub enum Command {
         /// Directory to save attachments to (default: current dir)
         #[arg(short = 'd', long = "dir", default_value = ".")]
         dir: String,
-    },
-}
-
-#[derive(Subcommand)]
-pub enum AddTarget {
-    /// Add a new Gmail identity via OAuth2
-    Id {
-        /// Short name for this identity (e.g. ops, personal, work)
-        name: String,
     },
 }

@@ -21,7 +21,7 @@ cargo build --release
 
 ```bash
 # 1. Add an identity (opens browser for OAuth2 — creates ~/.avis automatically)
-avis add id ops
+avis add ops
 
 # 2. Send an email
 avis send ops -t recipient@example.com -s "Hello" -b "Message body"
@@ -44,7 +44,7 @@ All output is flat JSON, designed for machine consumption.
 | Command | Description |
 |---------|-------------|
 | `avis init` | Create `~/.avis` directory structure |
-| `avis add id <name>` | Add identity via OAuth2 PKCE (email fetched automatically) |
+| `avis add <name>` | Add identity via OAuth2 PKCE (email fetched automatically) |
 | `avis ls` | List all identities |
 | `avis show <name>` | Show identity details |
 | `avis rm <name>` | Remove an identity |
