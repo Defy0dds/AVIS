@@ -9,11 +9,11 @@ use serde::Serialize;
 use std::path::Path;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-// -- Bundled OAuth2 client credentials -------------------------------------
-// Replace these with your actual GCP client ID and secret from the
-// downloaded client_secret_xxxx.json file.
-const CLIENT_ID: &str = "205426579886-cg8egldc3kkp8cnlp00v5qsm1qee9am9.apps.googleusercontent.com";
-const CLIENT_SECRET: &str = "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";
+// -- OAuth2 client credentials (injected at compile time via env vars) -----
+// Set AVIS_CLIENT_ID and AVIS_CLIENT_SECRET in the environment before building.
+// In GitHub Actions these are injected from repository secrets.
+const CLIENT_ID: &str = env!("AVIS_CLIENT_ID");
+const CLIENT_SECRET: &str = env!("AVIS_CLIENT_SECRET");
 
 const SCOPES: &str = "https://www.googleapis.com/auth/gmail.send \
      https://www.googleapis.com/auth/gmail.readonly";

@@ -87,11 +87,21 @@ src/
 8. Don't touch code outside your task scope — no "while I'm here" refactors
 9. Simplest solution wins. New abstraction = justify it first
 
+## Build-time environment variables
+`AVIS_CLIENT_ID` and `AVIS_CLIENT_SECRET` must be set as environment variables
+before building. The build will fail with a clear error if they are missing.
+
+```bash
+AVIS_CLIENT_ID=<your-client-id> AVIS_CLIENT_SECRET=<your-client-secret> cargo build --release
+```
+
+In GitHub Actions these are injected from repository secrets — never commit
+real credential values to the repo.
+
 ## Known Quirks
 - `imap` + `lettre` + `native-tls` removed from Cargo.toml — Gmail REST API only
 - `format_ts`/`days_to_ymd` duplicated in send.rs + read.rs — known tech debt
 - `rand = "0.8"` pinned — chacha20poly1305 compatibility, do not upgrade
-- CLIENT_ID/CLIENT_SECRET hardcoded in identity.rs — never commit real values
 
 ## Commands
 ```
