@@ -95,7 +95,7 @@ pub(crate) async fn download_attachments(
     Ok(saved)
 }
 
-pub async fn run(home: &Path, identity: &str, message_id: Option<&str>, dir: &str) {
+pub async fn run(home: &Path, identity: &str, message_id: Option<&str>, dir: Option<&str>) {
     let creds = load_credentials(home, identity).unwrap_or_else(|e| e.bail(2));
 
     let token = refresh::get_access_token(&creds)
@@ -119,12 +119,18 @@ pub async fn run(home: &Path, identity: &str, message_id: Option<&str>, dir: &st
         AvisError::new("no_attachments", "Message has no attachments").bail(1);
     }
 
+    // Use explicit dir or fall back to system temp dir / avis / identity
+    let effective_dir = match dir {
+        Some(d) => std::path::PathBuf::from(d),
+        None => std::env::temp_dir().join("avis").join(identity),
+    };
+
     let downloaded = download_attachments(
         &client,
         &token.access_token,
         &target_id,
         &msg.attachments,
-        Path::new(dir),
+        &effective_dir,
     )
     .await
     .unwrap_or_else(|e| e.bail(2));

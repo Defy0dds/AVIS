@@ -119,7 +119,7 @@ avis send <n> -t <to> -s <subject> -b <body> [-a <file>]...
 avis read <n> [--latest] [-f <from>] [-s <subject>] [-n <count>] [--verbose] [--download-dir <path>]
 avis wait <n> [-f <from>] [-s <subject>] [-t <seconds>] [--download-dir <path>]
 avis extract <n> [--first-code|--codes|--first-link|--links] [--id <msg_id>]
-avis download <n> [--id <msg_id>] [-d <dir>]
+avis download <n> [--id <msg_id>] [-d <dir>]   # default dir: /tmp/avis/<identity>/ (Linux/Mac) or %TEMP%\avis\<identity>\ (Windows)
 ```
 
 **Agent extract pattern** — always pass `--id` from a prior `read`/`wait` result:

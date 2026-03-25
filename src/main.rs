@@ -87,7 +87,7 @@ async fn main() {
             message_id,
             dir,
         } => {
-            commands::download::run(&home, &identity, message_id.as_deref(), &dir).await;
+            commands::download::run(&home, &identity, message_id.as_deref(), dir.as_deref()).await;
         }
 
         Command::Extract {

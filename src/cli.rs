@@ -146,8 +146,8 @@ pub enum Command {
         #[arg(long = "id")]
         message_id: Option<String>,
 
-        /// Directory to save attachments to (default: current dir)
-        #[arg(short = 'd', long = "dir", default_value = ".")]
-        dir: String,
+        /// Directory to save attachments to (default: system temp dir / avis / identity)
+        #[arg(short = 'd', long = "dir")]
+        dir: Option<String>,
     },
 }
