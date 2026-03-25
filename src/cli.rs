@@ -14,13 +14,6 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Command {
-    /// Initialize AVIS home directory
-    Init {
-        /// Override default home path (~/.avis)
-        #[arg(long)]
-        home: Option<String>,
-    },
-
     /// Add a new identity via OAuth2 PKCE
     Add {
         /// Short name for this identity (e.g. ops, personal, work)

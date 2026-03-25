@@ -16,13 +16,6 @@ async fn main() {
     let home = config::resolve_home();
 
     match cli.command {
-        Command::Init {
-            home: home_override,
-        } => {
-            let target = home_override.map(std::path::PathBuf::from).unwrap_or(home);
-            commands::init::run(&target).await;
-        }
-
         Command::Add { name } => {
             commands::identity::add(&home, &name).await;
         }
