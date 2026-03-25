@@ -98,6 +98,14 @@ AVIS_CLIENT_ID=<your-client-id> AVIS_CLIENT_SECRET=<your-client-secret> cargo bu
 In GitHub Actions these are injected from repository secrets — never commit
 real credential values to the repo.
 
+## Version Tagging
+`Cargo.toml` version must match the git tag before pushing a release. Current version: `0.1.0` (matches tag `v0.1.0`). Before tagging a new release:
+1. Update `version` in `Cargo.toml`
+2. Commit the change
+3. Push the tag: `git tag v<version> && git push origin v<version>`
+
+Never push a version tag without first updating `Cargo.toml` to match.
+
 ## Known Quirks
 - `imap` + `lettre` + `native-tls` removed from Cargo.toml — Gmail REST API only
 - `format_ts`/`days_to_ymd` duplicated in send.rs + read.rs — known tech debt
@@ -105,8 +113,7 @@ real credential values to the repo.
 
 ## Commands
 ```
-avis init [--home <path>]
-avis add <name>               # OAuth2 PKCE, opens browser; email fetched from Google
+avis add <name>               # OAuth2 PKCE, opens browser; email fetched from Google; auto-inits ~/.avis
 avis ls / show <n> / rm <n>
 avis send <n> -t <to> -s <subject> -b <body> [-a <file>]...
 avis read <n> [--latest] [-f <from>] [-s <subject>] [-n <count>] [--verbose] [--download-dir <path>]
@@ -114,6 +121,13 @@ avis wait <n> [-f <from>] [-s <subject>] [-t <seconds>] [--download-dir <path>]
 avis extract <n> [--first-code|--codes|--first-link|--links] [--id <msg_id>]
 avis download <n> [--id <msg_id>] [-d <dir>]
 ```
+
+**Agent extract pattern** — always pass `--id` from a prior `read`/`wait` result:
+```bash
+avis wait <identity> -f <sender> -t 60   # capture .id from output
+avis extract <identity> --first-code --id <id>
+```
+Relying on the default latest message is a race condition: a newer unrelated email may arrive between `wait` and `extract`.
 
 ## Exit Codes
 0 success · 1 operator error · 2 system error · 3 wait timeout
@@ -128,3 +142,6 @@ avis download <n> [--id <msg_id>] [-d <dir>]
 > Add entries here after every mistake. This file improves over time.
 - `avis add id` no longer takes an `email` arg — email is fetched from `GET /gmail/v1/users/me/profile` after OAuth. Update any references to the old `<name> <email>` signature.
 - `avis add id <name>` collapsed to `avis add <name>` — `AddTarget` enum removed. No subcommand between `add` and the name arg.
+- `avis init` removed — `avis add` auto-initializes `~/.avis`. Do not reference or re-add `init`.
+- `load_credentials` now returns `AvisError::identity_not_found` early if the identity directory is missing, instead of a raw `fs_error` about `master.key`. This covers all commands that call `load_credentials` (read, wait, extract, download, send).
+- Cargo.toml was at `1.0.0` while the released git tag was `v0.1.0` — corrected to `0.1.0`. Always keep these in sync.

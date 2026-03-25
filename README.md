@@ -61,8 +61,7 @@ All output is flat JSON, designed for machine consumption.
 
 | Command | Description |
 |---------|-------------|
-| `avis init` | Create `~/.avis` directory structure |
-| `avis add <name>` | Add identity via OAuth2 PKCE (email fetched automatically) |
+| `avis add <name>` | Add identity via OAuth2 PKCE (email fetched automatically; creates `~/.avis` if needed) |
 | `avis ls` | List all identities |
 | `avis show <name>` | Show identity details |
 | `avis rm <name>` | Remove an identity |

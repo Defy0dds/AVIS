@@ -6,31 +6,6 @@ All output goes to **stdout** as JSON with `schema_version: "1"`. Errors go to *
 
 ---
 
-## `avis init`
-
-Initialize the AVIS home directory and write `settings.json`.
-
-```
-avis init [--home <path>]
-```
-
-| Flag | Description |
-|------|-------------|
-| `--home <path>` | Override default home path (default: `~/.avis`) |
-
-**Output:**
-```json
-{
-  "schema_version": "1",
-  "created": true,
-  "home": "/home/user/.avis"
-}
-```
-
-`created` is `false` if the directory already existed.
-
----
-
 ## `avis add`
 
 Add a new Gmail identity via OAuth2 PKCE flow. Opens a browser, waits for Google to redirect back, exchanges the code for a refresh token, and stores encrypted credentials on disk. The email address is fetched automatically from the Google profile after OAuth.
@@ -282,3 +257,14 @@ The four selector flags are mutually exclusive.
 ```
 
 `codes` is empty when `--links` / `--first-link` is used, and `links` is empty when `--codes` / `--first-code` is used.
+
+**Agent usage pattern:** always supply `--id` from a prior `read` or `wait` result rather than relying on the default latest message. This avoids a race condition where a newer unrelated message arrives between the wait and extract calls.
+
+```bash
+# Step 1 — wait for the email and capture its ID
+result=$(avis wait ops -f noreply@service.com -t 60)
+id=$(echo "$result" | jq -r '.id')
+
+# Step 2 — extract the code using the captured ID
+avis extract ops --first-code --id "$id"
+```

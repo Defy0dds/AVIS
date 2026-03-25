@@ -254,6 +254,10 @@ pub fn load_credentials(
     home: &Path,
     identity: &str,
 ) -> Result<refresh::OAuthCredentials, AvisError> {
+    if !config::identity_dir(home, identity).exists() {
+        return Err(AvisError::identity_not_found(identity));
+    }
+
     let key_path = config::identity_master_key_path(home, identity);
     let creds_path = config::identity_credentials_path(home, identity);
 
