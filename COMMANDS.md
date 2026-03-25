@@ -151,7 +151,7 @@ Retries up to 3 times on transient failures (delays: 1s, 2s, 4s).
 Read inbox messages for the given identity via the Gmail REST API.
 
 ```
-avis read <identity> [--latest] [-f <from>] [-s <subject>] [-n <count>] [--verbose]
+avis read <identity> [--latest] [-f <from>] [-s <subject>] [-n <count>] [--verbose] [--download-dir <path>]
 ```
 
 | Argument / Flag | Description |
@@ -162,6 +162,7 @@ avis read <identity> [--latest] [-f <from>] [-s <subject>] [-n <count>] [--verbo
 | `-s`, `--subject` | Filter by subject (case-insensitive substring) |
 | `-n`, `--count` | Number of messages to return (default: `10`) |
 | `--verbose` | Reserved for future full-header output (currently a no-op) |
+| `--download-dir` | Auto-download attachments to this directory (omit to skip auto-download) |
 
 Body is stripped of quoted lines, `On … wrote:` lines, and trailing blank lines. Capped at 2000 characters (appends `...[truncated]` if exceeded).
 
@@ -188,7 +189,7 @@ Body is stripped of quoted lines, `On … wrote:` lines, and trailing blank line
 Poll the inbox until a matching new message arrives, then emit it and exit. Ignores messages already present when the command starts.
 
 ```
-avis wait <identity> [-f <from>] [-s <subject>] [-t <seconds>]
+avis wait <identity> [-f <from>] [-s <subject>] [-t <seconds>] [--download-dir <path>]
 ```
 
 | Argument / Flag | Description |
@@ -197,6 +198,7 @@ avis wait <identity> [-f <from>] [-s <subject>] [-t <seconds>]
 | `-f`, `--from` | Match on sender (case-insensitive substring) |
 | `-s`, `--subject` | Match on subject (case-insensitive substring) |
 | `-t`, `--timeout` | Seconds to wait before timing out (default: `60`) |
+| `--download-dir` | Auto-download attachments to this directory (omit to skip auto-download) |
 
 Polls every 1 second. Refreshes the access token each iteration.
 
@@ -267,4 +269,37 @@ id=$(echo "$result" | jq -r '.id')
 
 # Step 2 — extract the code using the captured ID
 avis extract ops --first-code --id "$id"
+```
+
+---
+
+## `avis download`
+
+Download all attachments from an email message.
+
+```
+avis download <identity> [--id <msg_id>] [-d <dir>]
+```
+
+| Argument / Flag | Description |
+|----------------|-------------|
+| `identity` | Identity name |
+| `--id <msg_id>` | Target a specific message by Gmail message ID (default: latest inbox message) |
+| `-d`, `--dir` | Directory to save attachments to (default: system temp dir — see below) |
+
+**Default download directory** (when `-d` is not provided):
+- Linux / macOS: `/tmp/avis/<identity>/`
+- Windows: `%TEMP%\avis\<identity>\`
+
+The directory is created automatically if it does not exist. Downloads from different identities never collide because the identity name is part of the path.
+
+**Output:**
+```json
+{
+  "schema_version": "1",
+  "message_id": "18f3d...",
+  "downloaded": [
+    { "filename": "invoice.pdf", "path": "/tmp/avis/ops/invoice.pdf", "size": 42318 }
+  ]
+}
 ```
