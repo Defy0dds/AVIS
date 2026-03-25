@@ -28,7 +28,7 @@ AVIS doesn't provision email infrastructure. It doesn't route mail through its o
 
 ## What AVIS Is
 
-A stateless, multi-identity email operations layer for AI agents.
+A stateless, multi-identity email operations layer for AI agents. `Identity delegation for autonomous agents`
 
 ```bash
 # Agent signs up for a service, waits for OTP, extracts it
