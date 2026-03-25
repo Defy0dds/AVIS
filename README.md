@@ -6,12 +6,30 @@ A stateless, multi-identity email operations layer for AI agents — built on Gm
 
 AI agents need email. Current solutions give agents disposable platform-owned addresses. AVIS takes the opposite approach: agents operate as **existing identities** (`support@acme.com`, your personal Gmail) via OAuth2, inheriting their trust and deliverability. No mail is stored locally. No AVIS server exists. Credentials never leave your machine.
 
-## Install
+## Download
+
+Pre-built binaries are available on the [Releases](https://github.com/defy0dds/avis/releases) page.
+
+| Platform | Binary |
+|----------|--------|
+| Linux x64 | `avis-linux-x64` |
+| Windows x64 | `avis-windows-x64.exe` |
+| macOS x64 (Intel) | `avis-macos-x64` |
+| macOS arm64 (Apple Silicon) | `avis-macos-arm64` |
+
+```bash
+# Example: download and install on Linux
+curl -L https://github.com/defy0dds/avis/releases/latest/download/avis-linux-x64 -o avis
+chmod +x avis
+./avis --help
+```
+
+## Install from source
 
 Requires Rust 1.75+.
 
 ```bash
-git clone https://github.com/yourorg/avis.git
+git clone https://github.com/defy0dds/avis.git
 cd avis
 cargo build --release
 # Binary at target/release/avis (or avis.exe on Windows)
