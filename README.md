@@ -2,6 +2,8 @@
 
 A stateless, multi-identity email operations layer for AI agents — built on Gmail, not around it.
 
+> ⚠️ **OAuth app is in testing mode.** To try AVIS, email zunayed@[yourdomain] to be added as a test user.
+
 ## Why
 
 AI agents need email. Current solutions give agents disposable platform-owned addresses. AVIS takes the opposite approach: agents operate as **existing identities** (`support@acme.com`, your personal Gmail) via OAuth2, inheriting their trust and deliverability. No mail is stored locally. No AVIS server exists. Credentials never leave your machine.
