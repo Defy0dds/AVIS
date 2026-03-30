@@ -2,7 +2,7 @@
 
 A stateless, multi-identity email operations layer for AI agents — built on Gmail, not around it.
 
-> ⚠️ **OAuth app is in testing mode.** To try AVIS, email zunayed@[yourdomain] to be added as a test user.
+> ⚠️ **OAuth app is in testing mode.** To try AVIS, email zunayed.dhk@gmail.com to be added as a test user.
 
 ## Why
 
