@@ -87,8 +87,8 @@ AVIS authenticates against Gmail via OAuth2 PKCE and uses the Gmail REST API for
 
 ## Limitations (v1)
 
-- Gmail only (Outlook/Microsoft planned for v2)
-- Requires Google OAuth2 client credentials
+Gmail only (Outlook/Microsoft planned for v2)
+
 
 ## License
 
