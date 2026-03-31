@@ -4,7 +4,7 @@
 
 AI agents need email. Every agent that signs up for a service, receives a verification code, manages a support inbox, or communicates on behalf of a business needs to send and receive email.
 
-The current solutions are wrong in the same direction: they give agents *new, disposable identities*.
+The current solutions are wrong in the same direction: they route your email through third-party infrastructure you don't control.
 
 **AgentMail** is an API-first email platform (YC S25, $6M seed from General Catalyst) that provisions and manages inboxes for AI agents — including custom domain support. Their infrastructure handles the email routing, storage, and delivery. The issue isn't their addresses — it's that your credentials and email data flow through their servers. One platform compromise and every customer's agent email is exposed.
 
