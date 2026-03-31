@@ -6,6 +6,7 @@ mod crypto;
 mod errors;
 mod output;
 mod sanitize;
+mod time;
 
 use clap::Parser;
 use cli::{Cli, Command};

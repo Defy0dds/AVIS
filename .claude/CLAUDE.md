@@ -108,7 +108,6 @@ Never push a version tag without first updating `Cargo.toml` to match.
 
 ## Known Quirks
 - `imap` + `lettre` + `native-tls` removed from Cargo.toml — Gmail REST API only
-- `format_ts`/`days_to_ymd` duplicated in send.rs + read.rs — known tech debt
 - `rand = "0.8"` pinned — chacha20poly1305 compatibility, do not upgrade
 
 ## Commands
@@ -145,3 +144,4 @@ Relying on the default latest message is a race condition: a newer unrelated ema
 - `avis init` removed — `avis add` auto-initializes `~/.avis`. Do not reference or re-add `init`.
 - `load_credentials` now returns `AvisError::identity_not_found` early if the identity directory is missing, instead of a raw `fs_error` about `master.key`. This covers all commands that call `load_credentials` (read, wait, extract, download, send).
 - Cargo.toml was at `1.0.0` while the released git tag was `v0.1.0` — corrected to `0.1.0`. Always keep these in sync.
+- cli.rs had hardcoded version 1.0.0 — removed in favor of Clap's automatic Cargo.toml version. imap_failure renamed to api_failure across codebase. format_ts/days_to_ymd deduplicated into src/time.rs.

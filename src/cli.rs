@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand};
 #[command(
     name = "avis",
     about = "Multi-identity email operations for AI agents",
-    version = "1.0.0",
+    version,
     arg_required_else_help = true
 )]
 pub struct Cli {

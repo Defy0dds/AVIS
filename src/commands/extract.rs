@@ -69,12 +69,12 @@ pub async fn run(
                 .bearer_auth(&token.access_token)
                 .send()
                 .await
-                .unwrap_or_else(|e| AvisError::imap_failure(e.to_string()).bail(2));
+                .unwrap_or_else(|e| AvisError::api_failure(e.to_string()).bail(2));
 
             let list: ListResponse = resp
                 .json()
                 .await
-                .unwrap_or_else(|e| AvisError::imap_failure(e.to_string()).bail(2));
+                .unwrap_or_else(|e| AvisError::api_failure(e.to_string()).bail(2));
 
             list.messages
                 .and_then(|m| m.into_iter().next())
