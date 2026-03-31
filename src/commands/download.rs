@@ -56,10 +56,10 @@ pub(crate) async fn download_attachments(
             .bearer_auth(access_token)
             .send()
             .await
-            .map_err(|e| AvisError::imap_failure(e.to_string()))?;
+            .map_err(|e| AvisError::api_failure(e.to_string()))?;
 
         if !resp.status().is_success() {
-            return Err(AvisError::imap_failure(format!(
+            return Err(AvisError::api_failure(format!(
                 "Failed to download {}: HTTP {}",
                 att.filename,
                 resp.status()
@@ -74,7 +74,7 @@ pub(crate) async fn download_attachments(
         let att_data: AttachmentData = resp
             .json()
             .await
-            .map_err(|e| AvisError::imap_failure(e.to_string()))?;
+            .map_err(|e| AvisError::api_failure(e.to_string()))?;
 
         let bytes = decode_attachment_data(&att_data.data)
             .map_err(|e| AvisError::new("decode_error", format!("{}: {}", att.filename, e)))?;
@@ -177,12 +177,12 @@ async fn resolve_latest_message_id(client: &reqwest::Client, access_token: &str)
         .bearer_auth(access_token)
         .send()
         .await
-        .unwrap_or_else(|e| AvisError::imap_failure(e.to_string()).bail(2));
+        .unwrap_or_else(|e| AvisError::api_failure(e.to_string()).bail(2));
 
     let list: ListResponse = resp
         .json()
         .await
-        .unwrap_or_else(|e| AvisError::imap_failure(e.to_string()).bail(2));
+        .unwrap_or_else(|e| AvisError::api_failure(e.to_string()).bail(2));
 
     list.messages
         .and_then(|m| m.into_iter().next())

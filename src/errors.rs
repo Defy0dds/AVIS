@@ -81,8 +81,8 @@ impl AvisError {
         Self::new("smtp_failure", detail)
     }
 
-    pub fn imap_failure(detail: impl Into<String>) -> Self {
-        Self::new("imap_failure", detail)
+    pub fn api_failure(detail: impl Into<String>) -> Self {
+        Self::new("api_failure", detail)
     }
 
     pub fn fs_error(detail: impl Into<String>) -> Self {

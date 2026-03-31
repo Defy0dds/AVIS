@@ -88,7 +88,7 @@ pub async fn get_access_token(creds: &OAuthCredentials) -> Result<AccessToken, A
         ("client_secret", creds.client_secret.as_str()),
     ];
     let body =
-        serde_urlencoded::to_string(params).map_err(|e| AvisError::imap_failure(e.to_string()))?;
+        serde_urlencoded::to_string(params).map_err(|e| AvisError::api_failure(e.to_string()))?;
 
     let resp = client
         .post(TOKEN_URL)
@@ -99,7 +99,7 @@ pub async fn get_access_token(creds: &OAuthCredentials) -> Result<AccessToken, A
         .body(body)
         .send()
         .await
-        .map_err(|e| AvisError::imap_failure(e.to_string()))?;
+        .map_err(|e| AvisError::api_failure(e.to_string()))?;
 
     #[derive(Deserialize)]
     struct TokenResponse {
@@ -110,7 +110,7 @@ pub async fn get_access_token(creds: &OAuthCredentials) -> Result<AccessToken, A
     let body: TokenResponse = resp
         .json()
         .await
-        .map_err(|e| AvisError::imap_failure(e.to_string()))?;
+        .map_err(|e| AvisError::api_failure(e.to_string()))?;
 
     if let Some(err) = body.error {
         if err.contains("invalid_grant") {
@@ -119,7 +119,7 @@ pub async fn get_access_token(creds: &OAuthCredentials) -> Result<AccessToken, A
                 "Refresh token revoked. Re-run: avis add <name>",
             ));
         }
-        return Err(AvisError::imap_failure(format!(
+        return Err(AvisError::api_failure(format!(
             "Token refresh failed: {}",
             err
         )));
@@ -127,7 +127,7 @@ pub async fn get_access_token(creds: &OAuthCredentials) -> Result<AccessToken, A
 
     let access_token = body
         .access_token
-        .ok_or_else(|| AvisError::imap_failure("No access token in refresh response"))?;
+        .ok_or_else(|| AvisError::api_failure("No access token in refresh response"))?;
 
     Ok(AccessToken { access_token })
 }
