@@ -87,6 +87,12 @@ src/
 8. Don't touch code outside your task scope — no "while I'm here" refactors
 9. Simplest solution wins. New abstraction = justify it first
 
+## Git workflow
+- NEVER commit directly to `main`. Always create a feature branch.
+- Branch naming: `feature/<description>` or `fix/<description>`
+- Push the branch. Create a PR if `gh` CLI is available. If not, push and tell me the branch name.
+- Keep commits atomic — one logical change per commit.
+
 ## Build-time environment variables
 `AVIS_CLIENT_ID` and `AVIS_CLIENT_SECRET` must be set as environment variables
 before building. The build will fail with a clear error if they are missing.
